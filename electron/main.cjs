@@ -5,7 +5,7 @@ const { app, dialog } = require('electron');
 
 const bootDir = path.join(
   process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
-  'chess-ai'
+  'Neural Chess'
 );
 const bootLogPath = path.join(bootDir, 'boot.log');
 

@@ -78,7 +78,7 @@ Browser mode still falls back to local storage because there is no secure host p
 
 Structured logs are written to:
 
-- Windows: `%APPDATA%/chess-ai/logs/neural-chess.log`
+- Windows: `%APPDATA%/Neural Chess/logs/neural-chess.log`
 - Electron runtime path: exposed in the app bootstrap and available from the UI through `OPEN LOGS`
 
 Every log line is JSON and includes:
@@ -163,14 +163,28 @@ npm run package
 
 This does the following:
 
-1. builds the renderer in EXE mode
-2. obfuscates the bundled renderer assets
-3. packages the app with `electron-packager`
+1. builds the renderer in EXE mode (`VITE_APP_MODE=EXE`, local Ollama only)
+2. packages the app with `electron-builder` into an NSIS installer at
+   `release/Neural Chess-Setup-<version>.exe`
+
+`npm run package:dir` produces an unpacked directory build for quick local checks.
+
+The app icon lives in `build/icon.svg`; regenerate `build/icon.ico` with
+`npm i --no-save sharp png-to-ico && node scripts/generate-icon.mjs`.
+
+The installer is currently unsigned, so Windows SmartScreen will warn on
+first run. For public distribution, configure code signing through
+electron-builder (`win.signtoolOptions` with an Authenticode certificate,
+or Azure Trusted Signing).
+
+The app was renamed from `chess-ai` to `Neural Chess`. On first launch the
+main process migrates an existing `%APPDATA%/chess-ai/app-config.json` into
+the new `%APPDATA%/Neural Chess` directory automatically.
 
 If desktop startup fails before any window appears, check:
 
 ```bash
-%APPDATA%\chess-ai\boot.log
+%APPDATA%\Neural Chess\boot.log
 ```
 
 ## Project Structure
@@ -194,6 +208,14 @@ src/
 
 tests/
   *.test.js
+
+scripts/
+  generate-icon.mjs   Renders build/icon.svg to build/icon.ico
+  reproduce_error.js  Move-parser smoke check
+  test_play.js        Live Ollama self-play smoke test
+
+build/
+  icon.svg, icon.ico  App icon and electron-builder resources
 ```
 
 ## Release Checklist

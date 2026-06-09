@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -27,7 +28,11 @@ export const bootPromise = boot();
 async function boot() {
   await app.whenReady();
 
+  const migratedLegacyDir = migrateLegacyUserData();
   logger = createLogger(app.getPath('userData'));
+  if (migratedLegacyDir) {
+    logger.info('config.legacy_userdata_migrated', { from: migratedLegacyDir });
+  }
   configStore = createConfigStore({
     userDataPath: app.getPath('userData'),
     safeStorage,
@@ -61,6 +66,27 @@ async function boot() {
       app.quit();
     }
   });
+}
+
+// The app was renamed from "chess-ai" to "Neural Chess", which moved the
+// userData directory. Copy the old config the first time the new dir is empty.
+// Windows safeStorage uses per-user DPAPI, so the encrypted API key stays
+// readable after the copy; on other platforms the key may need re-entry.
+function migrateLegacyUserData() {
+  try {
+    const userDataPath = app.getPath('userData');
+    const legacyDir = path.join(path.dirname(userDataPath), 'chess-ai');
+    const configPath = path.join(userDataPath, 'app-config.json');
+    const legacyConfigPath = path.join(legacyDir, 'app-config.json');
+    if (fs.existsSync(configPath) || !fs.existsSync(legacyConfigPath)) {
+      return null;
+    }
+    fs.mkdirSync(userDataPath, { recursive: true });
+    fs.copyFileSync(legacyConfigPath, configPath);
+    return legacyDir;
+  } catch {
+    return null;
+  }
 }
 
 function createWindow() {

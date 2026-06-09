@@ -5,4 +5,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: './', // Crucial for Electron to find files in the dist folder
+  server: {
+    watch: {
+      // Watching packaged output locks the dirs electron-builder renames
+      ignored: ['**/release/**', '**/release-builds/**'],
+    },
+  },
 })
