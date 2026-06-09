@@ -1,0 +1,7 @@
+{
+  "devDependencies": {
+    "electron": "^41.1.0",
+    "electron-packager": "^17.1.2",
+    "javascript-obfuscator": "^5.4.1"
+  }
+}

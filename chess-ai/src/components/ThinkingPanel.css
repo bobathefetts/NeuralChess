@@ -1,0 +1,151 @@
+.thinking-panel {
+  background: var(--bg-panel);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+
+.thinking-panel.active {
+  border-color: rgba(184, 0, 255, 0.5);
+  box-shadow: 0 0 16px rgba(184, 0, 255, 0.08);
+}
+
+.thinking-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--neon-blue);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.12);
+  background: rgba(0, 212, 255, 0.03);
+}
+
+.thinking-panel.active .thinking-header {
+  color: var(--neon-purple);
+  border-bottom-color: rgba(184, 0, 255, 0.2);
+  background: rgba(184, 0, 255, 0.04);
+}
+
+.thinking-icon {
+  font-size: 12px;
+  transition: color 0.3s;
+}
+
+.thinking-panel.active .thinking-icon {
+  color: var(--neon-purple);
+  animation: icon-pulse 1s ease-in-out infinite;
+}
+
+@keyframes icon-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.thinking-live {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--neon-purple);
+  background: rgba(184, 0, 255, 0.12);
+  border: 1px solid rgba(184, 0, 255, 0.3);
+  border-radius: 3px;
+  padding: 1px 6px;
+  animation: live-flash 1.5s ease-in-out infinite;
+}
+
+@keyframes live-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Computing state (before first token) */
+.computing-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  padding: 8px 0;
+}
+
+.computing-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.computing-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--neon-purple);
+  opacity: 0.3;
+  animation: dot-wave 1.4s ease-in-out infinite;
+}
+
+.computing-dots span:nth-child(1) { animation-delay: 0s; }
+.computing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.computing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dot-wave {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.3; }
+  40% { transform: scale(1.2); opacity: 1; }
+}
+
+.computing-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  animation: label-pulse 2s ease-in-out infinite;
+}
+
+@keyframes label-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.thinking-body {
+  padding: 10px 14px;
+  height: 140px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.thinking-text {
+  color: rgba(184, 0, 255, 0.85);
+}
+
+.thinking-panel:not(.active) .thinking-text {
+  color: var(--text-dim);
+}
+
+.thinking-empty {
+  color: var(--text-dim);
+  font-style: italic;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.thinking-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 12px;
+  background: var(--neon-purple);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 0.7s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

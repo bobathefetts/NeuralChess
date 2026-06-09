@@ -1,0 +1,275 @@
+.llm-config {
+  background: var(--bg-panel);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.05);
+}
+
+.config-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+  padding-bottom: 12px;
+}
+
+.config-icon {
+  font-size: 20px;
+  color: var(--neon-blue);
+  animation: spin 8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.config-header h2 {
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  color: var(--neon-blue);
+}
+
+.preset-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.preset-tab {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-family: 'Courier New', monospace;
+  background: transparent;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+
+.preset-tab:hover:not(:disabled) {
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+}
+
+.preset-tab:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.preset-tab.active {
+  background: rgba(0, 212, 255, 0.12);
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+.config-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-group label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+}
+
+.field-group input,
+.field-group select {
+  background: var(--bg-dark);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  color: var(--text-primary);
+  padding: 8px 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.field-group input:focus,
+.field-group select:focus {
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.15);
+}
+
+.field-group select option {
+  background: var(--bg-dark);
+}
+
+.field-hint {
+  font-size: 10px;
+  color: rgba(255, 150, 50, 0.8);
+  letter-spacing: 1px;
+}
+
+.key-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.key-btn {
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: var(--neon-blue);
+  font-size: 10px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 1px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+
+.key-btn:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.15);
+}
+
+.key-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.key-btn-secondary {
+  border-color: rgba(255, 153, 51, 0.35);
+  color: #ff9933;
+}
+
+.refresh-btn {
+  background: transparent;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  color: var(--neon-blue);
+  font-size: 10px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  align-self: flex-start;
+  margin-top: 2px;
+  transition: all 0.15s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.1);
+}
+
+/* Play As buttons (inside config panel) */
+.color-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.color-btn {
+  flex: 1;
+  padding: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  background: var(--bg-dark);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.color-btn:hover:not(:disabled) {
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+}
+
+.color-btn.active {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.15);
+}
+
+.color-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Difficulty buttons (inside config panel) */
+.difficulty-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.difficulty-btn {
+  flex: 1;
+  padding: 8px 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  background: var(--bg-dark);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.difficulty-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.difficulty-btn.difficulty-easy:hover:not(:disabled) { border-color: #00ff88; color: #00ff88; }
+.difficulty-btn.difficulty-easy.active { background: rgba(0,255,136,0.1); border-color: #00ff88; color: #00ff88; box-shadow: 0 0 10px rgba(0,255,136,0.15); }
+
+.difficulty-btn.difficulty-normal:hover:not(:disabled) { border-color: var(--neon-blue); color: var(--neon-blue); }
+.difficulty-btn.difficulty-normal.active { background: rgba(0,212,255,0.1); border-color: var(--neon-blue); color: var(--neon-blue); box-shadow: 0 0 10px rgba(0,212,255,0.15); }
+
+.difficulty-btn.difficulty-hard:hover:not(:disabled) { border-color: var(--neon-pink); color: var(--neon-pink); }
+.difficulty-btn.difficulty-hard.active { background: rgba(255,0,170,0.1); border-color: var(--neon-pink); color: var(--neon-pink); box-shadow: 0 0 10px rgba(255,0,170,0.15); }
+
+.start-btn {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(184, 0, 255, 0.15));
+  border: 1px solid var(--neon-blue);
+  color: var(--neon-blue);
+  padding: 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  letter-spacing: 3px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+}
+
+.start-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(184, 0, 255, 0.25));
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.start-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-icon {
+  font-size: 14px;
+}

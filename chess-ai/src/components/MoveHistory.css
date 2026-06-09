@@ -1,0 +1,73 @@
+.move-history {
+  background: var(--bg-panel);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--neon-blue);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+  background: rgba(0, 212, 255, 0.04);
+}
+
+.history-icon {
+  font-size: 13px;
+}
+
+.history-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 8px 0;
+}
+
+.no-moves {
+  padding: 12px 14px;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  font-style: italic;
+}
+
+.move-pair {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr;
+  padding: 3px 14px;
+  font-size: 12px;
+  gap: 4px;
+  transition: background 0.1s;
+}
+
+.move-pair:hover {
+  background: rgba(0, 212, 255, 0.05);
+}
+
+.move-num {
+  color: var(--text-dim);
+  font-size: 10px;
+  align-self: center;
+}
+
+.move {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+.white-move {
+  color: #d4f0ff;
+}
+
+.black-move {
+  color: rgba(138, 180, 204, 0.7);
+}

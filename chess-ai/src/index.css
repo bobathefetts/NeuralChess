@@ -1,0 +1,39 @@
+:root {
+  --neon-blue: #00d4ff;
+  --neon-cyan: #00ffff;
+  --neon-purple: #b800ff;
+  --neon-pink: #ff00aa;
+  --bg-dark: #050a12;
+  --bg-panel: #0a1628;
+  --bg-panel2: #0d1f3c;
+  --grid-color: rgba(0, 212, 255, 0.07);
+  --text-primary: #e0f4ff;
+  --text-dim: #4a7a9a;
+  font-family: 'Courier New', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: var(--neon-blue); border-radius: 3px; }
