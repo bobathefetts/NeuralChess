@@ -153,6 +153,12 @@ npm run lint
 npm test
 ```
 
+Load a custom starting position (handy for testing promotions and endgames):
+
+```text
+http://localhost:5173/?fen=8/P7/8/8/8/4k3/8/4K3%20w%20-%20-%200%201
+```
+
 ## Electron Packaging
 
 Current packaging command:

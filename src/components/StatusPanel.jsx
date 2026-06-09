@@ -29,11 +29,20 @@ export default function StatusPanel({
       const winner = turn === playerColor ? 'AI WINS' : 'YOU WIN';
       return { text: `CHECKMATE - ${winner}`, cls: 'status-end' };
     }
+    if (gameStatus === 'stalemate') {
+      return { text: 'STALEMATE - DRAW', cls: 'status-end' };
+    }
+    if (gameStatus === 'repetition') {
+      return { text: 'DRAW - THREEFOLD REPETITION', cls: 'status-end' };
+    }
+    if (gameStatus === 'insufficient-material') {
+      return { text: 'DRAW - INSUFFICIENT MATERIAL', cls: 'status-end' };
+    }
+    if (gameStatus === 'fifty-move') {
+      return { text: 'DRAW - FIFTY-MOVE RULE', cls: 'status-end' };
+    }
     if (gameStatus === 'draw') {
       return { text: 'DRAW', cls: 'status-end' };
-    }
-    if (gameStatus === 'stalemate') {
-      return { text: 'STALEMATE', cls: 'status-end' };
     }
     if (gameStatus === 'check') {
       return { text: `CHECK - ${turnLabel}`, cls: 'status-check' };

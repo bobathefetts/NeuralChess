@@ -119,6 +119,8 @@ export function createRuntimeRequest({
   };
 }
 
+export const DEFAULT_REQUEST_TIMEOUT_MS = 120_000;
+
 export async function requestLLMMove({
   config,
   fen,
@@ -130,6 +132,7 @@ export async function requestLLMMove({
   errorFeedback = '',
   fetchImpl = fetch,
   logger = null,
+  timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
 }) {
   const request = createRuntimeRequest({
     config,
@@ -140,32 +143,41 @@ export async function requestLLMMove({
     errorFeedback,
   });
 
-  switch (request.config.apiType) {
-    case 'ollama':
-      return callOllama({
-        ...request,
-        onToken,
-        signal,
-        fetchImpl,
-        logger,
-      });
-    case 'anthropic':
-      return callAnthropic({
-        ...request,
-        onToken,
-        signal,
-        fetchImpl,
-        logger,
-      });
-    case 'openai':
-    default:
-      return callOpenAI({
-        ...request,
-        onToken,
-        signal,
-        fetchImpl,
-        logger,
-      });
+  // A provider that accepts the connection but never streams would hang the
+  // UI forever; cap the whole request while still honoring the caller abort.
+  const timeoutController = new AbortController();
+  const timer = setTimeout(() => timeoutController.abort(), timeoutMs);
+  const combinedSignal = signal
+    ? AbortSignal.any([signal, timeoutController.signal])
+    : timeoutController.signal;
+
+  const params = {
+    ...request,
+    onToken,
+    signal: combinedSignal,
+    fetchImpl,
+    logger,
+  };
+
+  try {
+    switch (request.config.apiType) {
+      case 'ollama':
+        return await callOllama(params);
+      case 'anthropic':
+        return await callAnthropic(params);
+      case 'openai':
+      default:
+        return await callOpenAI(params);
+    }
+  } catch (error) {
+    if (error.name === 'AbortError' && timeoutController.signal.aborted && !signal?.aborted) {
+      throw new Error(
+        `Provider did not respond within ${Math.round(timeoutMs / 1000)}s.`
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -209,7 +221,7 @@ async function callOllama(params) {
     signal: params.signal,
   });
   if (!response.ok) {
-    throw new Error(`Ollama Error: ${response.status}`);
+    throw new Error(`Ollama error ${response.status}${await readErrorBody(response)}`);
   }
 
   const fullText = await readNdjsonStream(
@@ -260,7 +272,7 @@ async function callOpenAI(params) {
     signal: params.signal,
   });
   if (!response.ok) {
-    throw new Error(`OpenAI Error: ${response.status}`);
+    throw new Error(`OpenAI error ${response.status}${await readErrorBody(response)}`);
   }
 
   const fullText = await readSseStream(
@@ -314,7 +326,7 @@ async function callAnthropic(params) {
     signal: params.signal,
   });
   if (!response.ok) {
-    throw new Error(`Anthropic Error: ${response.status}`);
+    throw new Error(`Anthropic error ${response.status}${await readErrorBody(response)}`);
   }
 
   const fullText = await readSseStream(
@@ -339,6 +351,15 @@ async function callAnthropic(params) {
     params.logger,
     'anthropic'
   );
+}
+
+async function readErrorBody(response) {
+  try {
+    const text = (await response.text()).trim();
+    return text ? `: ${text.slice(0, 300)}` : '';
+  } catch {
+    return '';
+  }
 }
 
 async function readNdjsonStream(response, extractContent, onToken, signal) {
@@ -369,12 +390,7 @@ async function readNdjsonStream(response, extractContent, onToken, signal) {
       buffer = lines.pop() || '';
 
       for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          continue;
-        }
-        const payload = JSON.parse(trimmed);
-        const token = extractContent(payload);
+        const token = parseStreamToken(line.trim(), extractContent);
         if (token) {
           fullText += token;
           onToken?.(token, fullText);
@@ -382,14 +398,14 @@ async function readNdjsonStream(response, extractContent, onToken, signal) {
       }
     }
 
-    const finalLine = buffer.trim();
-    if (finalLine) {
-      const payload = JSON.parse(finalLine);
-      const token = extractContent(payload);
-      if (token) {
-        fullText += token;
-        onToken?.(token, fullText);
-      }
+    const token = parseStreamToken(buffer.trim(), extractContent);
+    if (token) {
+      fullText += token;
+      onToken?.(token, fullText);
+    }
+
+    if (signal?.aborted) {
+      throw new DOMException('The operation was aborted.', 'AbortError');
     }
   } finally {
     signal?.removeEventListener('abort', onAbort);
@@ -427,11 +443,10 @@ async function readSseStream(response, extractContent, onToken, signal) {
 
       for (const chunk of chunks) {
         const payloadText = extractSsePayload(chunk);
-        if (!payloadText || payloadText === '[DONE]') {
+        if (payloadText === '[DONE]') {
           continue;
         }
-        const payload = JSON.parse(payloadText);
-        const token = extractContent(payload);
+        const token = parseStreamToken(payloadText, extractContent);
         if (token) {
           fullText += token;
           onToken?.(token, fullText);
@@ -440,19 +455,34 @@ async function readSseStream(response, extractContent, onToken, signal) {
     }
 
     const finalPayload = extractSsePayload(buffer);
-    if (finalPayload && finalPayload !== '[DONE]') {
-      const payload = JSON.parse(finalPayload);
-      const token = extractContent(payload);
+    if (finalPayload !== '[DONE]') {
+      const token = parseStreamToken(finalPayload, extractContent);
       if (token) {
         fullText += token;
         onToken?.(token, fullText);
       }
+    }
+
+    if (signal?.aborted) {
+      throw new DOMException('The operation was aborted.', 'AbortError');
     }
   } finally {
     signal?.removeEventListener('abort', onAbort);
   }
 
   return fullText;
+}
+
+// One malformed line from a provider must not kill the whole request.
+function parseStreamToken(payloadText, extractContent) {
+  if (!payloadText) {
+    return '';
+  }
+  try {
+    return extractContent(JSON.parse(payloadText)) || '';
+  } catch {
+    return '';
+  }
 }
 
 function extractSsePayload(chunk) {

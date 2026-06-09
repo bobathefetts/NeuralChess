@@ -54,8 +54,11 @@ export default function App() {
     moveHistory,
     gameStatus,
     lastMove,
+    pendingPromotion,
     selectSquare,
     makeMove,
+    promote,
+    cancelPromotion,
     resetGame,
     getTurn,
     isGameOver,
@@ -442,6 +445,9 @@ export default function App() {
             playerColor={playerColor}
             disabled={isBoardDisabled}
             squareSize={squareSize}
+            promotion={pendingPromotion}
+            onPromote={promote}
+            onCancelPromotion={cancelPromotion}
           />
           {!gameStarted && (
             <div className="board-overlay">

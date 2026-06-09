@@ -23,6 +23,9 @@ function parseFen(fen) {
   return board;
 }
 
+const PROMOTION_PIECES = ['q', 'r', 'b', 'n'];
+const PROMOTION_LABELS = { q: 'Queen', r: 'Rook', b: 'Bishop', n: 'Knight' };
+
 export default function ChessBoard({
   fen,
   selectedSquare,
@@ -32,6 +35,9 @@ export default function ChessBoard({
   playerColor = 'w',
   disabled = false,
   squareSize = 72,
+  promotion = null,
+  onPromote,
+  onCancelPromotion,
 }) {
   const board = useMemo(() => parseFen(fen), [fen]);
   const legalTargets = useMemo(() => new Set(legalMoves.map(m => m.to)), [legalMoves]);
@@ -100,6 +106,30 @@ export default function ChessBoard({
           {ranks.map(r => <span key={r}>{r}</span>)}
         </div>
       </div>
+
+      {promotion && (
+        <div className="promotion-overlay" onClick={onCancelPromotion}>
+          <div className="promotion-picker" onClick={(event) => event.stopPropagation()}>
+            <div className="promotion-title">PROMOTE TO</div>
+            <div className="promotion-options">
+              {PROMOTION_PIECES.map((piece) => (
+                <button
+                  key={piece}
+                  className="promotion-btn"
+                  type="button"
+                  onClick={() => onPromote(piece)}
+                  aria-label={`Promote to ${PROMOTION_LABELS[piece]}`}
+                >
+                  <span className={`piece ${playerColor === 'w' ? 'white-piece' : 'black-piece'}`}>
+                    {PIECE_SYMBOLS[playerColor + piece.toUpperCase()]}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="promotion-hint">click outside to cancel</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
