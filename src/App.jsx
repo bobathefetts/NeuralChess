@@ -40,6 +40,7 @@ export default function App() {
   const [isHydrated, setIsHydrated] = useState(false);
 
   const [gameStarted, setGameStarted] = useState(false);
+  const [resigned, setResigned] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState(null);
   const [thinkingText, setThinkingText] = useState('');
@@ -59,6 +60,8 @@ export default function App() {
     makeMove,
     promote,
     cancelPromotion,
+    undoLastTurn,
+    exportPgn,
     resetGame,
     getTurn,
     isGameOver,
@@ -266,7 +269,7 @@ export default function App() {
   }, [apiKeyDraft, difficulty, fen, game, llmConfig, makeMove, moveHistory]);
 
   useEffect(() => {
-    if (!gameStarted || isGameOver()) {
+    if (!gameStarted || resigned || isGameOver()) {
       return;
     }
     if (getTurn() === playerColor) {
@@ -277,7 +280,7 @@ export default function App() {
     }
 
     triggerAIMove();
-  }, [fen, gameStarted, getTurn, isGameOver, playerColor, triggerAIMove]);
+  }, [fen, gameStarted, getTurn, isGameOver, playerColor, resigned, triggerAIMove]);
 
   const persistApiKey = useCallback(async () => {
     const nextApiKey = apiKeyDraft.trim();
@@ -323,6 +326,7 @@ export default function App() {
     abortAI();
     resetGame();
     setGameStarted(true);
+    setResigned(false);
     setError(null);
     setThinkingText('');
     setHasTokens(false);
@@ -341,6 +345,7 @@ export default function App() {
     abortAI();
     resetGame();
     setGameStarted(false);
+    setResigned(false);
     setError(null);
     setThinkingText('');
     setHasTokens(false);
@@ -358,6 +363,37 @@ export default function App() {
     triggerAIMove();
   }, [triggerAIMove]);
 
+  const handleStop = useCallback(() => {
+    abortAI();
+    setError('AI move stopped.');
+    setCanRetry(true);
+    logRuntimeEvent('move.stopped');
+  }, [abortAI]);
+
+  const handleResign = useCallback(() => {
+    abortAI();
+    setResigned(true);
+    setError(null);
+    setCanRetry(false);
+    logRuntimeEvent('match.resigned');
+  }, [abortAI]);
+
+  const handleUndo = useCallback(() => {
+    abortAI();
+    if (undoLastTurn(playerColor)) {
+      setError(null);
+      setCanRetry(false);
+      logRuntimeEvent('move.undone');
+    }
+  }, [abortAI, playerColor, undoLastTurn]);
+
+  const handleGetPgn = useCallback(() => {
+    const aiName = llmConfig.model || `${llmConfig.apiType} (default model)`;
+    return exportPgn(
+      playerColor === 'w' ? { white: 'Human', black: aiName } : { white: aiName, black: 'Human' }
+    );
+  }, [exportPgn, llmConfig.apiType, llmConfig.model, playerColor]);
+
   const handleCheckForUpdates = useCallback(async () => {
     const nextState = await checkForUpdates();
     setUpdateState(nextState);
@@ -373,7 +409,8 @@ export default function App() {
     setDisclaimerAccepted(true);
   }, []);
 
-  const isBoardDisabled = !gameStarted || getTurn() !== playerColor || isGameOver() || isThinking;
+  const isBoardDisabled =
+    !gameStarted || resigned || getTurn() !== playerColor || isGameOver() || isThinking;
   const boardTotalHeight = squareSize * 8 + 60;
 
   return (
@@ -405,7 +442,7 @@ export default function App() {
             secureStorageAvailable={secureStorageAvailable}
             onChange={setLlmConfig}
             onStart={handleStart}
-            disabled={gameStarted && !isGameOver()}
+            disabled={gameStarted && !isGameOver() && !resigned}
             playerColor={playerColor}
             onPlayerColorChange={setPlayerColor}
             difficulty={difficulty}
@@ -462,7 +499,7 @@ export default function App() {
 
         <aside className="right-panel">
           <StatusPanel
-            gameStatus={gameStatus}
+            gameStatus={resigned ? 'resigned' : gameStatus}
             turn={getTurn()}
             playerColor={playerColor}
             llmConfig={llmConfig}
@@ -473,12 +510,17 @@ export default function App() {
             error={error}
             onReset={handleReset}
             onRetry={canRetry ? handleRetry : null}
+            onStop={isThinking ? handleStop : null}
+            onResign={gameStarted && !resigned && !isGameOver() ? handleResign : null}
+            onUndo={
+              gameStarted && !resigned && moveHistory.length > 0 ? handleUndo : null
+            }
             onCheckForUpdates={handleCheckForUpdates}
             onDownloadUpdate={updateState.downloadUrl ? handleDownloadUpdate : null}
             onOpenLogs={openLogsDirectory}
             gameStarted={gameStarted}
           />
-          <MoveHistory moveHistory={moveHistory} />
+          <MoveHistory moveHistory={moveHistory} fen={fen} getPgn={handleGetPgn} />
         </aside>
       </main>
 

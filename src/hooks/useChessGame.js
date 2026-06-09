@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Chess } from 'chess.js';
 import { getGameStatus } from '../services/gameStatus';
+import { buildPgn, undoableMoveCount } from '../services/gameRecord';
 
 // Optional ?fen=... query parameter sets the starting position. Useful for
 // testing specific positions (promotions, endgames) against a model.
@@ -100,6 +101,32 @@ export function useChessGame() {
     setPendingPromotion(null);
   }, []);
 
+  // Take back the player's last move (and the AI reply, if any) by
+  // replaying the remaining history onto a fresh game.
+  const undoLastTurn = useCallback((playerColor) => {
+    const count = undoableMoveCount(moveHistory, playerColor);
+    if (!count) {
+      return false;
+    }
+    const remaining = moveHistory.slice(0, -count);
+    const nextGame = createGame();
+    for (const move of remaining) {
+      nextGame.move(move.san);
+    }
+    const last = remaining[remaining.length - 1];
+    setGame(nextGame);
+    setMoveHistory(remaining);
+    setLastMove(last ? { from: last.from, to: last.to } : null);
+    setSelectedSquare(null);
+    setPendingPromotion(null);
+    return true;
+  }, [moveHistory]);
+
+  const exportPgn = useCallback(
+    (names = {}) => buildPgn(moveHistory, { initialFen, ...names }),
+    [moveHistory]
+  );
+
   const resetGame = useCallback(() => {
     setGame(createGame());
     setLastMove(null);
@@ -124,6 +151,8 @@ export function useChessGame() {
     makeMove,
     promote,
     cancelPromotion,
+    undoLastTurn,
+    exportPgn,
     resetGame,
     getTurn,
     isGameOver,

@@ -68,6 +68,19 @@
   justify-content: center;
   cursor: pointer;
   transition: background-color 0.1s;
+  /* squares are <button> elements for keyboard access */
+  appearance: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.square:focus-visible {
+  outline: 2px solid rgba(0, 212, 255, 0.9);
+  outline-offset: -2px;
+  z-index: 4;
 }
 
 .square.light {
@@ -123,8 +136,6 @@
 
 /* Chess pieces */
 .piece {
-  font-size: calc(var(--sq) * 0.62);
-  line-height: 1;
   position: relative;
   z-index: 3;
   user-select: none;
@@ -132,20 +143,22 @@
   filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.8));
 }
 
+.piece-svg {
+  width: calc(var(--sq) * 0.82);
+  height: calc(var(--sq) * 0.82);
+  pointer-events: none;
+}
+
 .square:hover:not(.disabled) .piece {
   transform: scale(1.08);
 }
 
 .white-piece {
-  color: #d4f0ff;
   filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.9));
 }
 
 .black-piece {
-  color: #1a3a55;
   filter: drop-shadow(0 0 4px rgba(184, 0, 255, 0.5)) drop-shadow(0 2px 4px rgba(0,0,0,0.9));
-  text-shadow: 0 0 0 #8ab4cc;
-  -webkit-text-stroke: 1px rgba(100, 160, 200, 0.4);
 }
 
 /* Promotion picker */
@@ -198,8 +211,9 @@
   border-color: rgba(0, 212, 255, 0.8);
 }
 
-.promotion-btn .piece {
-  font-size: calc(var(--sq) * 0.55);
+.promotion-btn .piece-svg {
+  width: calc(var(--sq) * 0.62);
+  height: calc(var(--sq) * 0.62);
 }
 
 .promotion-hint {

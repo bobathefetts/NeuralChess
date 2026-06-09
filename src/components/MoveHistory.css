@@ -71,3 +71,39 @@
 .black-move {
   color: rgba(138, 180, 204, 0.7);
 }
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid rgba(0, 212, 255, 0.15);
+}
+
+.copy-btn {
+  flex: 1;
+  padding: 6px 8px;
+  background: transparent;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: var(--neon-blue);
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.copy-btn:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.08);
+  border-color: rgba(0, 212, 255, 0.6);
+}
+
+.copy-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.copy-feedback {
+  font-size: 9px;
+  color: var(--text-dim);
+}

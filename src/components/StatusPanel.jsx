@@ -12,6 +12,9 @@ export default function StatusPanel({
   error,
   onReset,
   onRetry,
+  onStop,
+  onResign,
+  onUndo,
   onCheckForUpdates,
   onDownloadUpdate,
   onOpenLogs,
@@ -28,6 +31,9 @@ export default function StatusPanel({
     if (gameStatus === 'checkmate') {
       const winner = turn === playerColor ? 'AI WINS' : 'YOU WIN';
       return { text: `CHECKMATE - ${winner}`, cls: 'status-end' };
+    }
+    if (gameStatus === 'resigned') {
+      return { text: 'RESIGNED - AI WINS', cls: 'status-end' };
     }
     if (gameStatus === 'stalemate') {
       return { text: 'STALEMATE - DRAW', cls: 'status-end' };
@@ -104,9 +110,27 @@ export default function StatusPanel({
       {error && <div className="error-msg">! {error}</div>}
 
       <div className="status-actions">
+        {onStop && (
+          <button className="retry-btn" onClick={onStop} type="button">
+            STOP AI MOVE
+          </button>
+        )}
+
         {onRetry && (
           <button className="retry-btn" onClick={onRetry} type="button">
             RETRY AI MOVE
+          </button>
+        )}
+
+        {onUndo && (
+          <button className="secondary-btn" onClick={onUndo} type="button">
+            UNDO MOVE
+          </button>
+        )}
+
+        {onResign && (
+          <button className="secondary-btn" onClick={onResign} type="button">
+            RESIGN
           </button>
         )}
 

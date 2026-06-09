@@ -1,6 +1,10 @@
+import { useRef, useState } from 'react';
 import './MoveHistory.css';
 
-export default function MoveHistory({ moveHistory }) {
+export default function MoveHistory({ moveHistory, fen, getPgn }) {
+  const [copied, setCopied] = useState(null);
+  const copyTimerRef = useRef(null);
+
   const pairs = [];
   for (let index = 0; index < moveHistory.length; index += 2) {
     pairs.push({
@@ -8,6 +12,17 @@ export default function MoveHistory({ moveHistory }) {
       white: moveHistory[index],
       black: moveHistory[index + 1],
     });
+  }
+
+  async function copyToClipboard(kind, text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(kind);
+    } catch {
+      setCopied('failed');
+    }
+    clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopied(null), 1500);
   }
 
   return (
@@ -25,6 +40,24 @@ export default function MoveHistory({ moveHistory }) {
             <span className="move black-move">{black?.san || ''}</span>
           </div>
         ))}
+      </div>
+      <div className="history-actions">
+        <button
+          type="button"
+          className="copy-btn"
+          disabled={moveHistory.length === 0}
+          onClick={() => copyToClipboard('pgn', getPgn())}
+        >
+          {copied === 'pgn' ? 'COPIED!' : 'COPY PGN'}
+        </button>
+        <button
+          type="button"
+          className="copy-btn"
+          onClick={() => copyToClipboard('fen', fen)}
+        >
+          {copied === 'fen' ? 'COPIED!' : 'COPY FEN'}
+        </button>
+        {copied === 'failed' && <span className="copy-feedback">clipboard unavailable</span>}
       </div>
     </div>
   );

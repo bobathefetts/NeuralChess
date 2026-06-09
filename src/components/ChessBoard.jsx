@@ -1,14 +1,17 @@
 import { useMemo } from 'react';
 import { Chess } from 'chess.js';
+import piecesSprite from '../assets/chess-pieces.svg?raw';
 import './ChessBoard.css';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
 
-const PIECE_SYMBOLS = {
-  wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
-  bK: '♚', bQ: '♛', bR: '♜', bB: '♝', bN: '♞', bP: '♟',
+const PIECE_NAMES = {
+  k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn',
 };
+
+const PROMOTION_PIECES = ['q', 'r', 'b', 'n'];
+const PROMOTION_LABELS = { q: 'Queen', r: 'Rook', b: 'Bishop', n: 'Knight' };
 
 function parseFen(fen) {
   const chess = new Chess(fen);
@@ -23,8 +26,23 @@ function parseFen(fen) {
   return board;
 }
 
-const PROMOTION_PIECES = ['q', 'r', 'b', 'n'];
-const PROMOTION_LABELS = { q: 'Queen', r: 'Rook', b: 'Bishop', n: 'Knight' };
+function Piece({ color, type }) {
+  return (
+    <svg
+      className={`piece piece-svg ${color === 'w' ? 'white-piece' : 'black-piece'}`}
+      viewBox="0 0 45 45"
+      aria-hidden="true"
+    >
+      <use href={`#${color}${type.toUpperCase()}`} />
+    </svg>
+  );
+}
+
+function squareLabel(square, piece) {
+  if (!piece) return `${square}, empty`;
+  const color = piece.color === 'w' ? 'white' : 'black';
+  return `${square}, ${color} ${PIECE_NAMES[piece.type]}`;
+}
 
 export default function ChessBoard({
   fen,
@@ -47,6 +65,8 @@ export default function ChessBoard({
 
   return (
     <div className="board-wrapper" style={{ '--sq': `${squareSize}px` }}>
+      {/* Inline sprite so <use href="#wN"> resolves in this document */}
+      <span style={{ display: 'none' }} dangerouslySetInnerHTML={{ __html: piecesSprite }} />
       <div className="board-glow" />
       <div className="board-container">
         <div className="rank-labels">
@@ -58,7 +78,7 @@ export default function ChessBoard({
             {files.map(f => <span key={f}>{f}</span>)}
           </div>
 
-          <div className="board">
+          <div className="board" role="group" aria-label="Chess board">
             {ranks.map((rank) =>
               files.map((file) => {
                 const square = file + rank;
@@ -70,8 +90,9 @@ export default function ChessBoard({
                 const isLastMoveTo = lastMove?.to === square;
 
                 return (
-                  <div
+                  <button
                     key={square}
+                    type="button"
                     className={[
                       'square',
                       isLight ? 'light' : 'dark',
@@ -80,18 +101,15 @@ export default function ChessBoard({
                       disabled ? 'disabled' : '',
                     ].join(' ')}
                     onClick={() => !disabled && onSquareClick(square)}
+                    aria-label={squareLabel(square, piece)}
+                    aria-pressed={isSelected}
+                    aria-disabled={disabled}
                   >
                     {isLegalTarget && (
                       <div className={`move-hint ${piece ? 'capture-hint' : 'dot-hint'}`} />
                     )}
-                    {piece && (
-                      <span
-                        className={`piece ${piece.color === 'w' ? 'white-piece' : 'black-piece'}`}
-                      >
-                        {PIECE_SYMBOLS[piece.color + piece.type.toUpperCase()]}
-                      </span>
-                    )}
-                  </div>
+                    {piece && <Piece color={piece.color} type={piece.type} />}
+                  </button>
                 );
               })
             )}
@@ -109,7 +127,12 @@ export default function ChessBoard({
 
       {promotion && (
         <div className="promotion-overlay" onClick={onCancelPromotion}>
-          <div className="promotion-picker" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="promotion-picker"
+            role="dialog"
+            aria-label="Choose promotion piece"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="promotion-title">PROMOTE TO</div>
             <div className="promotion-options">
               {PROMOTION_PIECES.map((piece) => (
@@ -120,9 +143,7 @@ export default function ChessBoard({
                   onClick={() => onPromote(piece)}
                   aria-label={`Promote to ${PROMOTION_LABELS[piece]}`}
                 >
-                  <span className={`piece ${playerColor === 'w' ? 'white-piece' : 'black-piece'}`}>
-                    {PIECE_SYMBOLS[playerColor + piece.toUpperCase()]}
-                  </span>
+                  <Piece color={playerColor} type={piece} />
                 </button>
               ))}
             </div>
