@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import { parseMoveFromText } from './src/services/llmCore.js';
+import { parseMoveFromText } from '../src/services/llmCore.js';
 
 const game = new Chess();
 const samples = [

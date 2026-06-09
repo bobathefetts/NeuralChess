@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import { requestLLMMove } from './src/services/llmCore.js';
+import { requestLLMMove } from '../src/services/llmCore.js';
 
 const model = process.env.OLLAMA_MODEL || 'gemma3:4b';
 const difficulty = process.env.NEURAL_CHESS_DIFFICULTY || 'normal';
