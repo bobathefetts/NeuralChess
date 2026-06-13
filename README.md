@@ -74,6 +74,16 @@ If secure storage is unavailable on a desktop platform, the app refuses to persi
 
 Browser mode still falls back to local storage because there is no secure host process.
 
+Additional desktop hardening:
+
+- a `Content-Security-Policy` is injected by the main process: `script-src`
+  is locked to `'self'` (no inline or remote scripts), with `object-src`,
+  `frame-src`, and `form-action` denied. `connect-src` stays broad because
+  the renderer reaches user-configured Ollama/provider endpoints directly.
+- the renderer window runs with `sandbox: true` and `contextIsolation: true`
+- in-app navigation is blocked; external `http(s)` links open in the system
+  browser instead of inside the app window
+
 ## Logs And Crash Data
 
 Structured logs are written to:
@@ -87,6 +97,14 @@ Every log line is JSON and includes:
 - level
 - event
 - metadata payload
+
+Logs rotate by size: when `neural-chess.log` passes 5 MB it rolls to
+`neural-chess.log.1` (keeping up to three backups), so the log directory is
+bounded at roughly 20 MB.
+
+Window size, position, and maximized state are remembered across launches.
+If the saved position lands on a monitor that is no longer connected, the
+window re-centers on a current display.
 
 Crash handling includes:
 
@@ -153,6 +171,13 @@ npm run lint
 npm test
 ```
 
+Run the Electron end-to-end smoke tests (builds the renderer, then launches
+the real app with Playwright):
+
+```bash
+npm run test:e2e
+```
+
 Load a custom starting position (handy for testing promotions and endgames):
 
 ```text
@@ -213,7 +238,10 @@ src/
     runtimeBridge.js
 
 tests/
-  *.test.js
+  *.test.js           Unit tests (node --test)
+
+e2e/
+  *.spec.js           Electron smoke tests (Playwright)
 
 scripts/
   generate-icon.mjs   Renders build/icon.svg to build/icon.ico
@@ -228,6 +256,7 @@ build/
 
 - verify `npm run lint`
 - verify `npm test`
+- verify `npm run test:e2e`
 - verify `npm run build`
 - verify live Ollama smoke test with at least one supported model
 - set `NEURAL_CHESS_UPDATE_URL` for release builds if you want update checks

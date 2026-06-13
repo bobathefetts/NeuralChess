@@ -31,3 +31,9 @@ jobs:
 
       - name: Build renderer
         run: npm run build
+
+      # Electron end-to-end smoke tests. Run on Windows, the app's target
+      # platform; the renderer is already built by the previous step.
+      - name: E2E (Electron)
+        if: runner.os == 'Windows'
+        run: npx playwright test

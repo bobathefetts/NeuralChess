@@ -8,6 +8,12 @@ release/
 release-builds/
 tmp_asar/
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
 # Logs
 logs/
 *.log

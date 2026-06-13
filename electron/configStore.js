@@ -22,6 +22,13 @@ const DEFAULT_STATE = {
       updateManifestUrl: '',
     },
   },
+  window: {
+    width: 1200,
+    height: 860,
+    x: null,
+    y: null,
+    maximized: false,
+  },
   secrets: {
     apiKey: null,
   },
@@ -135,6 +142,27 @@ export function createConfigStore({ userDataPath, safeStorage, logger }) {
     return state.settings.release.updateManifestUrl || '';
   }
 
+  function getWindowBounds() {
+    const win = state.window;
+    return {
+      width: win.width,
+      height: win.height,
+      // undefined (not null) lets BrowserWindow center the window
+      x: win.x ?? undefined,
+      y: win.y ?? undefined,
+      maximized: win.maximized,
+    };
+  }
+
+  function saveWindowBounds(bounds = {}) {
+    state = {
+      ...state,
+      window: sanitizeWindow({ ...state.window, ...bounds }),
+    };
+    persistState(configPath, state, logger);
+    return state.window;
+  }
+
   return {
     getRendererState,
     saveRendererState,
@@ -143,6 +171,8 @@ export function createConfigStore({ userDataPath, safeStorage, logger }) {
     clearApiKey,
     getApiKey,
     getUpdateManifestUrl,
+    getWindowBounds,
+    saveWindowBounds,
   };
 }
 
@@ -168,6 +198,7 @@ function migrateState(rawState, safeStorage, logger) {
       ui: sanitizeUi(rawState?.settings?.ui || rawState?.ui || {}),
       release: sanitizeRelease(rawState?.settings?.release || rawState?.release || {}),
     },
+    window: sanitizeWindow(rawState?.window || {}),
     secrets: {
       apiKey:
         rawState?.secrets?.apiKey && decodeSecret(rawState.secrets.apiKey, safeStorage, logger)
@@ -223,6 +254,19 @@ function sanitizeUi(ui = {}) {
 function sanitizeRelease(release = {}) {
   return {
     updateManifestUrl: String(release.updateManifestUrl || '').trim(),
+  };
+}
+
+function sanitizeWindow(win = {}) {
+  const toInt = (value) => (Number.isFinite(Number(value)) ? Math.round(Number(value)) : null);
+  const width = toInt(win.width);
+  const height = toInt(win.height);
+  return {
+    width: width && width >= 1000 ? width : DEFAULT_STATE.window.width,
+    height: height && height >= 800 ? height : DEFAULT_STATE.window.height,
+    x: toInt(win.x),
+    y: toInt(win.y),
+    maximized: Boolean(win.maximized),
   };
 }
 

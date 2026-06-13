@@ -7,6 +7,8 @@ import {
   crashReporter,
   ipcMain,
   safeStorage,
+  screen,
+  session,
   shell,
 } from 'electron';
 import { Chess } from 'chess.js';
@@ -44,6 +46,7 @@ async function boot() {
     logger,
   });
 
+  applyContentSecurityPolicy();
   startCrashReporter();
   registerProcessHandlers();
   registerIpcHandlers();
@@ -89,13 +92,63 @@ function migrateLegacyUserData() {
   }
 }
 
+// Lock the renderer down with a Content-Security-Policy. The renderer never
+// needs to load remote scripts, so script-src 'self' blocks injected code.
+// connect-src is intentionally broad: in desktop mode the renderer still
+// fetches the Ollama model list directly, and providers live at
+// user-configured http/https endpoints.
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "font-src 'self'",
+  "connect-src 'self' http: https:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'none'",
+  "frame-src 'none'",
+].join('; ');
+
+function applyContentSecurityPolicy() {
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [CONTENT_SECURITY_POLICY],
+      },
+    });
+  });
+}
+
+// Saved coordinates may point at a monitor that is no longer connected.
+// Drop x/y (re-center) unless the window would land on a current display.
+function ensureOnScreen(bounds) {
+  if (bounds.x === undefined || bounds.y === undefined) {
+    return bounds;
+  }
+  const visible = screen.getAllDisplays().some((display) => {
+    const area = display.workArea;
+    return (
+      bounds.x < area.x + area.width &&
+      bounds.x + bounds.width > area.x &&
+      bounds.y < area.y + area.height &&
+      bounds.y + bounds.height > area.y
+    );
+  });
+  return visible ? bounds : { ...bounds, x: undefined, y: undefined };
+}
+
 function createWindow() {
+  const bounds = ensureOnScreen(configStore.getWindowBounds());
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 860,
+    width: bounds.width,
+    height: bounds.height,
+    x: bounds.x,
+    y: bounds.y,
     minWidth: 1000,
     minHeight: 800,
-    center: true,
+    center: bounds.x === undefined,
     show: false,
     backgroundColor: '#050a12',
     autoHideMenuBar: true,
@@ -104,13 +157,30 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
     },
   });
 
+  if (bounds.maximized) {
+    mainWindow.maximize();
+  }
+
   mainWindow.loadFile(path.join(appRoot, 'dist', 'index.html'));
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url).catch(() => {});
+    if (/^https?:\/\//i.test(url)) {
+      shell.openExternal(url).catch(() => {});
+    }
     return { action: 'deny' };
+  });
+  // Block in-app navigation away from the bundled renderer; route external
+  // http/https links to the system browser instead.
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (url !== mainWindow.webContents.getURL()) {
+      event.preventDefault();
+      if (/^https?:\/\//i.test(url)) {
+        shell.openExternal(url).catch(() => {});
+      }
+    }
   });
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     logger.error('renderer.process_gone', details);
@@ -121,6 +191,38 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     mainWindow.focus();
+  });
+
+  registerWindowStatePersistence(mainWindow);
+}
+
+// Persist window size, position, and maximized state across launches.
+function registerWindowStatePersistence(mainWindow) {
+  let saveTimer = null;
+
+  const persist = () => {
+    if (mainWindow.isDestroyed()) {
+      return;
+    }
+    const isMaximized = mainWindow.isMaximized();
+    // normalBounds gives the restored (un-maximized) geometry so we can
+    // reopen at the right size after un-maximizing.
+    const bounds = mainWindow.getNormalBounds();
+    configStore.saveWindowBounds({ ...bounds, maximized: isMaximized });
+  };
+
+  const scheduleSave = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(persist, 400);
+  };
+
+  mainWindow.on('resize', scheduleSave);
+  mainWindow.on('move', scheduleSave);
+  mainWindow.on('maximize', scheduleSave);
+  mainWindow.on('unmaximize', scheduleSave);
+  mainWindow.on('close', () => {
+    clearTimeout(saveTimer);
+    persist();
   });
 }
 
