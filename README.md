@@ -203,10 +203,42 @@ This does the following:
 The app icon lives in `build/icon.svg`; regenerate `build/icon.ico` with
 `npm i --no-save sharp png-to-ico && node scripts/generate-icon.mjs`.
 
-The installer is currently unsigned, so Windows SmartScreen will warn on
-first run. For public distribution, configure code signing through
-electron-builder (`win.signtoolOptions` with an Authenticode certificate,
-or Azure Trusted Signing).
+### Installing an unsigned build (SmartScreen)
+
+The installer is currently **unsigned**, so Windows SmartScreen shows a
+"Windows protected your PC" dialog on first run. To install:
+
+1. Click **More info**.
+2. Click **Run anyway**.
+
+This is expected for an unsigned app and only appears until the publisher
+builds reputation (see below).
+
+### Adding code signing later
+
+Signing is optional and intentionally not configured yet. Note that **since
+August 2024 no certificate type — including EV — grants instant SmartScreen
+trust**; reputation is built organically as the signed app accumulates clean
+downloads. Signing is therefore necessary-but-not-sufficient to clear
+SmartScreen, not an instant fix.
+
+When you do want to sign, the recommended path is **Azure Artifact Signing**
+(formerly "Trusted Signing"): roughly $10/month, cloud-based (no hardware
+token), and open to self-employed individuals in the US/Canada/EU/UK. To wire
+it into the build:
+
+1. Create an Azure Artifact Signing account + certificate profile and pass
+   identity validation.
+2. Create a service principal with the "Trusted Signing Certificate Profile
+   Signer" role.
+3. Add an `azureSignOptions` block under `build.win` in `package.json` and
+   provide `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` as
+   environment variables (or CI secrets). electron-builder signs when those
+   are present and builds unsigned when they are not.
+
+A traditional OV/IV certificate (with the now-mandatory hardware token or a
+cloud HSM) is the alternative; it produces the same organic-reputation
+outcome at higher cost and setup effort.
 
 The app was renamed from `chess-ai` to `Neural Chess`. On first launch the
 main process migrates an existing `%APPDATA%/chess-ai/app-config.json` into
