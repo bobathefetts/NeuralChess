@@ -136,17 +136,14 @@
 
 /* Chess pieces */
 .piece {
+  font-size: calc(var(--sq) * 0.62);
+  line-height: 1;
   position: relative;
   z-index: 3;
   user-select: none;
+  pointer-events: none;
   transition: transform 0.1s;
   filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.8));
-}
-
-.piece-svg {
-  width: calc(var(--sq) * 0.82);
-  height: calc(var(--sq) * 0.82);
-  pointer-events: none;
 }
 
 .square:hover:not(.disabled) .piece {
@@ -154,11 +151,15 @@
 }
 
 .white-piece {
+  color: #d4f0ff;
   filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.9));
 }
 
 .black-piece {
+  color: #1a3a55;
   filter: drop-shadow(0 0 4px rgba(184, 0, 255, 0.5)) drop-shadow(0 2px 4px rgba(0,0,0,0.9));
+  text-shadow: 0 0 0 #8ab4cc;
+  -webkit-text-stroke: 1px rgba(100, 160, 200, 0.4);
 }
 
 /* Promotion picker */
@@ -211,9 +212,8 @@
   border-color: rgba(0, 212, 255, 0.8);
 }
 
-.promotion-btn .piece-svg {
-  width: calc(var(--sq) * 0.62);
-  height: calc(var(--sq) * 0.62);
+.promotion-btn .piece {
+  font-size: calc(var(--sq) * 0.55);
 }
 
 .promotion-hint {

@@ -1,10 +1,14 @@
 import { useMemo } from 'react';
 import { Chess } from 'chess.js';
-import piecesSprite from '../assets/chess-pieces.svg?raw';
 import './ChessBoard.css';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+const PIECE_SYMBOLS = {
+  wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
+  bK: '♚', bQ: '♛', bR: '♜', bB: '♝', bN: '♞', bP: '♟',
+};
 
 const PIECE_NAMES = {
   k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn',
@@ -28,13 +32,12 @@ function parseFen(fen) {
 
 function Piece({ color, type }) {
   return (
-    <svg
-      className={`piece piece-svg ${color === 'w' ? 'white-piece' : 'black-piece'}`}
-      viewBox="0 0 45 45"
+    <span
+      className={`piece ${color === 'w' ? 'white-piece' : 'black-piece'}`}
       aria-hidden="true"
     >
-      <use href={`#${color}${type.toUpperCase()}`} />
-    </svg>
+      {PIECE_SYMBOLS[color + type.toUpperCase()]}
+    </span>
   );
 }
 
@@ -65,8 +68,6 @@ export default function ChessBoard({
 
   return (
     <div className="board-wrapper" style={{ '--sq': `${squareSize}px` }}>
-      {/* Inline sprite so <use href="#wN"> resolves in this document */}
-      <span style={{ display: 'none' }} dangerouslySetInnerHTML={{ __html: piecesSprite }} />
       <div className="board-glow" />
       <div className="board-container">
         <div className="rank-labels">
