@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useChessGame } from './hooks/useChessGame';
-import { buildFallbackMove, getLLMMove, getMaxRetries } from './services/llmService';
+import { useAIOpponent } from './hooks/useAIOpponent';
 import {
   DEFAULT_BOOTSTRAP,
   DEFAULT_LLM_CONFIG,
@@ -44,11 +44,6 @@ export default function App() {
 
   const [gameStarted, setGameStarted] = useState(false);
   const [resigned, setResigned] = useState(false);
-  const [isThinking, setIsThinking] = useState(false);
-  const [error, setError] = useState(null);
-  const [thinkingText, setThinkingText] = useState('');
-  const [hasTokens, setHasTokens] = useState(false);
-  const [canRetry, setCanRetry] = useState(false);
 
   const {
     game,
@@ -70,8 +65,20 @@ export default function App() {
     isGameOver,
   } = useChessGame();
 
-  const isThinkingRef = useRef(false);
-  const abortRef = useRef(null);
+  const {
+    isThinking,
+    error,
+    thinkingText,
+    hasTokens,
+    canRetry,
+    triggerAIMove,
+    abortAI,
+    resetAIState,
+    clearError,
+    retry,
+    stop,
+  } = useAIOpponent({ game, fen, moveHistory, llmConfig, apiKeyDraft, difficulty, makeMove });
+
   const lastSoundedRef = useRef(0);
 
   useEffect(() => {
@@ -164,127 +171,8 @@ export default function App() {
     lastSoundedRef.current = moveHistory.length;
   }, [moveHistory]);
 
-  const abortAI = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    isThinkingRef.current = false;
-    setIsThinking(false);
-  }, []);
-
-  const triggerAIMove = useCallback(async () => {
-    if (isThinkingRef.current) {
-      return;
-    }
-
-    isThinkingRef.current = true;
-    setIsThinking(true);
-    setHasTokens(false);
-    setThinkingText('');
-    setError(null);
-    setCanRetry(false);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-    let lastErrorFeedback = '';
-    const maxRetries = getMaxRetries(difficulty);
-
-    try {
-      for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
-        if (controller.signal.aborted) {
-          break;
-        }
-
-        try {
-          setHasTokens(false);
-          setThinkingText('');
-
-          const rawMove = await getLLMMove(
-            {
-              ...llmConfig,
-              apiKey: apiKeyDraft || llmConfig.apiKey || '',
-            },
-            fen,
-            moveHistory,
-            game,
-            difficulty,
-            (_chunk, fullText) => {
-              setHasTokens(true);
-              setThinkingText(fullText);
-            },
-            controller.signal,
-            lastErrorFeedback
-          );
-
-          if (controller.signal.aborted) {
-            break;
-          }
-
-          const result = makeMove(rawMove.slice(0, 2), rawMove.slice(2, 4), rawMove[4] || 'q');
-          if (result) {
-            setError(null);
-            logRuntimeEvent('move.accepted', {
-              difficulty,
-              move: rawMove,
-              attempt,
-            });
-            break;
-          }
-
-          lastErrorFeedback = `Move "${rawMove}" was not legal in the current position. Choose a different move from the legal list only.`;
-          if (attempt === maxRetries) {
-            const fallbackMove = buildFallbackMove(game);
-            if (fallbackMove && !controller.signal.aborted) {
-              makeMove(
-                fallbackMove.slice(0, 2),
-                fallbackMove.slice(2, 4),
-                fallbackMove[4] || 'q'
-              );
-              setError(
-                `Model failed to produce a legal move after ${maxRetries} attempts. A random legal move was played.`
-              );
-            } else {
-              setError(`AI suggested an illegal move and no fallback was available.`);
-              setCanRetry(true);
-            }
-            break;
-          }
-
-          setError(`AI suggested an illegal move. Retrying (${attempt}/${maxRetries})...`);
-        } catch (requestError) {
-          if (requestError.name === 'AbortError') {
-            break;
-          }
-
-          lastErrorFeedback = `${requestError.message} Return exactly one legal UCI move from the provided legal list.`;
-          if (attempt === maxRetries) {
-            const fallbackMove = buildFallbackMove(game);
-            if (fallbackMove && !controller.signal.aborted) {
-              makeMove(
-                fallbackMove.slice(0, 2),
-                fallbackMove.slice(2, 4),
-                fallbackMove[4] || 'q'
-              );
-              setError(
-                `Model failed after ${maxRetries} attempts. A random legal move was played.`
-              );
-            } else {
-              setError(`AI failed after ${maxRetries} attempts: ${requestError.message}`);
-              setCanRetry(true);
-            }
-          } else {
-            setError(`${requestError.message} Retrying (${attempt}/${maxRetries})...`);
-          }
-        }
-      }
-    } finally {
-      if (!controller.signal.aborted) {
-        abortRef.current = null;
-        isThinkingRef.current = false;
-        setIsThinking(false);
-      }
-    }
-  }, [apiKeyDraft, difficulty, fen, game, llmConfig, makeMove, moveHistory]);
-
+  // Drive the AI's turn. triggerAIMove guards against re-entry itself, so the
+  // effect only needs to decide whether it is the AI's move.
   useEffect(() => {
     if (!gameStarted || resigned || isGameOver()) {
       return;
@@ -292,10 +180,6 @@ export default function App() {
     if (getTurn() === playerColor) {
       return;
     }
-    if (isThinkingRef.current) {
-      return;
-    }
-
     triggerAIMove();
   }, [fen, gameStarted, getTurn, isGameOver, playerColor, resigned, triggerAIMove]);
 
@@ -344,65 +228,38 @@ export default function App() {
     resetGame();
     setGameStarted(true);
     setResigned(false);
-    setError(null);
-    setThinkingText('');
-    setHasTokens(false);
-    setCanRetry(false);
-    isThinkingRef.current = false;
-    setIsThinking(false);
+    resetAIState();
     logRuntimeEvent('match.started', {
       apiType: llmConfig.apiType,
       model: llmConfig.model || '(provider-default)',
       difficulty,
       playerColor,
     });
-  }, [abortAI, difficulty, llmConfig.apiType, llmConfig.model, persistApiKey, playerColor, resetGame]);
+  }, [abortAI, difficulty, llmConfig.apiType, llmConfig.model, persistApiKey, playerColor, resetAIState, resetGame]);
 
   const handleReset = useCallback(() => {
     abortAI();
     resetGame();
     setGameStarted(false);
     setResigned(false);
-    setError(null);
-    setThinkingText('');
-    setHasTokens(false);
-    setCanRetry(false);
-    isThinkingRef.current = false;
-    setIsThinking(false);
+    resetAIState();
     logRuntimeEvent('match.reset');
-  }, [abortAI, resetGame]);
-
-  const handleRetry = useCallback(() => {
-    setError(null);
-    setCanRetry(false);
-    isThinkingRef.current = false;
-    setIsThinking(false);
-    triggerAIMove();
-  }, [triggerAIMove]);
-
-  const handleStop = useCallback(() => {
-    abortAI();
-    setError('AI move stopped.');
-    setCanRetry(true);
-    logRuntimeEvent('move.stopped');
-  }, [abortAI]);
+  }, [abortAI, resetAIState, resetGame]);
 
   const handleResign = useCallback(() => {
     abortAI();
     setResigned(true);
-    setError(null);
-    setCanRetry(false);
+    clearError();
     logRuntimeEvent('match.resigned');
-  }, [abortAI]);
+  }, [abortAI, clearError]);
 
   const handleUndo = useCallback(() => {
     abortAI();
     if (undoLastTurn(playerColor)) {
-      setError(null);
-      setCanRetry(false);
+      clearError();
       logRuntimeEvent('move.undone');
     }
-  }, [abortAI, playerColor, undoLastTurn]);
+  }, [abortAI, clearError, playerColor, undoLastTurn]);
 
   const handleGetPgn = useCallback(() => {
     const aiName = llmConfig.model || `${llmConfig.apiType} (default model)`;
@@ -530,8 +387,8 @@ export default function App() {
             isThinking={isThinking}
             error={error}
             onReset={handleReset}
-            onRetry={canRetry ? handleRetry : null}
-            onStop={isThinking ? handleStop : null}
+            onRetry={canRetry ? retry : null}
+            onStop={isThinking ? stop : null}
             onResign={gameStarted && !resigned && !isGameOver() ? handleResign : null}
             onUndo={
               gameStarted && !resigned && moveHistory.length > 0 ? handleUndo : null
