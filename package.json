@@ -15,6 +15,7 @@
     "build:exe": "cross-env VITE_APP_MODE=EXE vite build",
     "package": "npm run build:exe && electron-builder --win",
     "package:dir": "npm run build:exe && electron-builder --win --dir",
+    "release": "npm run build:exe && electron-builder --win --publish always",
     "test": "node --test \"tests/*.test.js\"",
     "test:e2e": "npm run build && playwright test",
     "lint": "eslint .",
@@ -22,6 +23,7 @@
   },
   "dependencies": {
     "chess.js": "^1.4.0",
+    "electron-updater": "^6.8.9",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
@@ -47,6 +49,12 @@
       "output": "release",
       "buildResources": "build"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "releaseType": "release"
+      }
+    ],
     "files": [
       "dist/**",
       "electron/**",

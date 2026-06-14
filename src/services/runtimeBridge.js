@@ -42,7 +42,7 @@ export const DEFAULT_BOOTSTRAP = {
     checkedAt: null,
     message: 'Desktop update checks are unavailable in browser mode.',
     notes: '',
-    downloadUrl: '',
+    progress: 0,
   },
 };
 
@@ -155,6 +155,29 @@ export async function checkForUpdates() {
     return getDesktopBridge().checkForUpdates();
   }
   return DEFAULT_BOOTSTRAP.updateState;
+}
+
+export async function downloadUpdate() {
+  if (hasDesktopRuntime()) {
+    return getDesktopBridge().downloadUpdate();
+  }
+  return DEFAULT_BOOTSTRAP.updateState;
+}
+
+export function installUpdate() {
+  if (hasDesktopRuntime()) {
+    getDesktopBridge().installUpdate();
+  }
+}
+
+// Subscribe to live update-state pushes (e.g. download progress). Returns an
+// unsubscribe function; a no-op in browser mode.
+export function subscribeUpdateState(listener) {
+  const bridge = getDesktopBridge();
+  if (bridge?.onUpdateState) {
+    return bridge.onUpdateState(listener);
+  }
+  return () => {};
 }
 
 export async function openExternal(url) {

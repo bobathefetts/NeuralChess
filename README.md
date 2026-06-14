@@ -114,29 +114,39 @@ Crash handling includes:
 - child process termination events
 - local crash reporter collection
 
-## Update Manifest
+## Auto-Update
 
-The app checks for updates when `NEURAL_CHESS_UPDATE_URL` is configured for the desktop runtime.
+Updates use `electron-updater` against **GitHub Releases**. In a packaged
+build the app checks for updates on launch and via the **CHECK UPDATES**
+button; the flow is:
 
-Expected manifest format:
+1. **CHECK UPDATES** → if a newer release exists, the status shows
+   `vX AVAILABLE`.
+2. **DOWNLOAD UPDATE** → downloads in the background with a live percentage.
+3. **RESTART & INSTALL** → quits and installs the new version.
 
-```json
-{
-  "version": "1.1.0",
-  "notes": "Parser fixes, secure config migration, release diagnostics.",
-  "downloadUrl": "https://example.com/NeuralChess-1.1.0.zip"
-}
+Updates only run in the packaged app (the renderer reports `disabled` in
+browser/dev mode). Release notes from the GitHub Release are shown in the UI.
+
+### Cutting a release
+
+Releases are produced by the `Release` workflow (`.github/workflows/release.yml`),
+which builds the Windows installer and publishes it — along with `latest.yml`
+(the feed `electron-updater` reads) — to a GitHub Release:
+
+```bash
+# bump "version" in package.json first, then:
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
-Current behavior:
+The publish target (owner/repo) is inferred from the `origin` git remote, so
+the repository must have a GitHub `origin` set. To publish from your machine
+instead of CI, set a `GH_TOKEN` with `repo` scope and run `npm run release`.
 
-- the app can detect a newer version
-- the UI can open the configured download URL
-
-Important:
-
-- this is a manifest-driven updater hook, not a silent in-place installer
-- true auto-install on Windows usually requires switching packaging strategy to an installer/update system such as Squirrel or NSIS-based tooling
+> Because builds are unsigned, the downloaded installer is verified by SHA-512
+> hash from `latest.yml` (not by code-signature). Adding code signing later
+> also enables signature verification on updates.
 
 ## Local Development
 
@@ -291,7 +301,7 @@ build/
 - verify `npm run test:e2e`
 - verify `npm run build`
 - verify live Ollama smoke test with at least one supported model
-- set `NEURAL_CHESS_UPDATE_URL` for release builds if you want update checks
+- bump `version` in `package.json`, then push a `vX.Y.Z` tag to publish a release
 - confirm logs and crash files are being written on the target OS
 
 ## Known Limitations

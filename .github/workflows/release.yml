@@ -1,0 +1,37 @@
+name: Release
+
+# Push a version tag (e.g. v1.1.0) to build the Windows installer and publish
+# it — plus latest.yml for electron-updater — to a GitHub Release.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build and publish to GitHub Releases
+        env:
+          # electron-builder reads this to create the release and upload assets.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release

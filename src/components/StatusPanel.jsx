@@ -17,6 +17,7 @@ export default function StatusPanel({
   onUndo,
   onCheckForUpdates,
   onDownloadUpdate,
+  onInstallUpdate,
   onOpenLogs,
   gameStarted,
 }) {
@@ -144,6 +145,18 @@ export default function StatusPanel({
           </button>
         )}
 
+        {updateState.status === 'downloading' && (
+          <button className="secondary-btn" type="button" disabled>
+            DOWNLOADING {updateState.progress || 0}%
+          </button>
+        )}
+
+        {onInstallUpdate && (
+          <button className="retry-btn" onClick={onInstallUpdate} type="button">
+            RESTART &amp; INSTALL
+          </button>
+        )}
+
         <button className="secondary-btn" onClick={onOpenLogs} type="button">
           OPEN LOGS
         </button>
@@ -163,7 +176,11 @@ export default function StatusPanel({
 function updateLabel(updateState) {
   switch (updateState.status) {
     case 'available':
-      return `v${updateState.latestVersion} READY`;
+      return `v${updateState.latestVersion} AVAILABLE`;
+    case 'downloading':
+      return `DOWNLOADING ${updateState.progress || 0}%`;
+    case 'downloaded':
+      return 'READY TO INSTALL';
     case 'not-available':
       return 'CURRENT';
     case 'checking':

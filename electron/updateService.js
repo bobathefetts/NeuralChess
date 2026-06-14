@@ -1,79 +1,115 @@
-export function compareVersions(left = '0.0.0', right = '0.0.0') {
-  const a = String(left).split('.').map((part) => Number.parseInt(part, 10) || 0);
-  const b = String(right).split('.').map((part) => Number.parseInt(part, 10) || 0);
-  const maxLength = Math.max(a.length, b.length);
-  for (let index = 0; index < maxLength; index += 1) {
-    const diff = (a[index] || 0) - (b[index] || 0);
-    if (diff !== 0) {
-      return diff;
-    }
-  }
-  return 0;
-}
+// Wraps electron-updater's autoUpdater behind a small state machine that the
+// renderer already understands (getState() shape). autoUpdater is injected so
+// the event->state mapping is unit-testable with a fake EventEmitter.
+export function createUpdateService({
+  autoUpdater,
+  currentVersion,
+  logger,
+  isPackaged,
+  onStateChange = () => {},
+}) {
+  const active = Boolean(isPackaged && autoUpdater);
 
-export function createUpdateService({ currentVersion, manifestUrl, logger, fetchImpl = fetch }) {
   let state = {
-    status: manifestUrl ? 'idle' : 'disabled',
+    status: active ? 'idle' : 'disabled',
     currentVersion,
     latestVersion: currentVersion,
     checkedAt: null,
-    message: manifestUrl ? 'Ready to check for updates.' : 'No update manifest configured.',
+    message: active
+      ? 'Ready to check for updates.'
+      : 'Updates are only available in the packaged app.',
     notes: '',
-    downloadUrl: '',
+    progress: 0,
   };
 
-  async function checkForUpdates() {
-    if (!manifestUrl) {
-      state = {
-        ...state,
-        status: 'disabled',
-        checkedAt: new Date().toISOString(),
-      };
-      return state;
-    }
+  function setState(patch) {
+    state = { ...state, ...patch };
+    onStateChange(state);
+  }
 
-    state = {
-      ...state,
-      status: 'checking',
-      message: 'Checking for updates...',
+  if (active) {
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.logger = {
+      info: (message) => logger.info('updater', { message: String(message) }),
+      warn: (message) => logger.warn('updater', { message: String(message) }),
+      error: (message) => logger.error('updater', { message: String(message) }),
+      debug: (message) => logger.debug('updater', { message: String(message) }),
     };
 
+    autoUpdater.on('checking-for-update', () => {
+      setState({ status: 'checking', message: 'Checking for updates...' });
+    });
+    autoUpdater.on('update-available', (info) => {
+      setState({
+        status: 'available',
+        latestVersion: info.version,
+        notes: stringifyNotes(info.releaseNotes),
+        message: `Version ${info.version} is available.`,
+        checkedAt: new Date().toISOString(),
+      });
+    });
+    autoUpdater.on('update-not-available', (info) => {
+      setState({
+        status: 'not-available',
+        latestVersion: info?.version || currentVersion,
+        message: 'You are up to date.',
+        checkedAt: new Date().toISOString(),
+      });
+    });
+    autoUpdater.on('download-progress', (progress) => {
+      const percent = Math.round(progress?.percent || 0);
+      setState({
+        status: 'downloading',
+        progress: percent,
+        message: `Downloading update... ${percent}%`,
+      });
+    });
+    autoUpdater.on('update-downloaded', (info) => {
+      setState({
+        status: 'downloaded',
+        latestVersion: info.version,
+        progress: 100,
+        message: `Version ${info.version} downloaded. Restart to install.`,
+      });
+    });
+    autoUpdater.on('error', (error) => {
+      logger.error('updates.error', { message: error?.message || String(error) });
+      setState({ status: 'error', message: error?.message || 'Update error.' });
+    });
+  }
+
+  async function checkForUpdates() {
+    if (!active) {
+      setState({ status: 'disabled', checkedAt: new Date().toISOString() });
+      return state;
+    }
     try {
-      const response = await fetchImpl(manifestUrl, {
-        headers: {
-          Accept: 'application/json',
-          'Cache-Control': 'no-cache',
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`Update manifest request failed: ${response.status}`);
-      }
-      const manifest = normalizeManifest(await response.json());
-      const isNewer = compareVersions(manifest.version, currentVersion) > 0;
-      state = {
-        status: isNewer ? 'available' : 'not-available',
-        currentVersion,
-        latestVersion: manifest.version,
-        checkedAt: new Date().toISOString(),
-        message: isNewer ? `Version ${manifest.version} is available.` : 'You are up to date.',
-        notes: manifest.notes,
-        downloadUrl: manifest.downloadUrl,
-      };
-      logger.info('updates.checked', {
-        currentVersion,
-        latestVersion: manifest.version,
-        status: state.status,
-      });
-      return state;
+      await autoUpdater.checkForUpdates();
     } catch (error) {
-      state = {
-        ...state,
-        status: 'error',
-        checkedAt: new Date().toISOString(),
-        message: error.message,
-      };
-      logger.error('updates.check_failed', { message: error.message });
+      logger.error('updates.check_failed', { message: error?.message || String(error) });
+      setState({ status: 'error', message: error?.message || 'Update check failed.' });
+    }
+    return state;
+  }
+
+  async function downloadUpdate() {
+    if (!active) {
       return state;
+    }
+    try {
+      setState({ status: 'downloading', progress: 0, message: 'Downloading update...' });
+      await autoUpdater.downloadUpdate();
+    } catch (error) {
+      logger.error('updates.download_failed', { message: error?.message || String(error) });
+      setState({ status: 'error', message: error?.message || 'Update download failed.' });
+    }
+    return state;
+  }
+
+  function quitAndInstall() {
+    if (active) {
+      autoUpdater.quitAndInstall();
     }
   }
 
@@ -84,13 +120,25 @@ export function createUpdateService({ currentVersion, manifestUrl, logger, fetch
   return {
     getState,
     checkForUpdates,
+    downloadUpdate,
+    quitAndInstall,
   };
 }
 
-function normalizeManifest(manifest = {}) {
-  return {
-    version: String(manifest.version || '0.0.0'),
-    notes: String(manifest.notes || ''),
-    downloadUrl: String(manifest.downloadUrl || manifest.url || ''),
-  };
+// GitHub releases return release notes either as a string or as an array of
+// { version, note } objects (when several versions are skipped).
+function stringifyNotes(notes) {
+  if (!notes) {
+    return '';
+  }
+  if (typeof notes === 'string') {
+    return notes;
+  }
+  if (Array.isArray(notes)) {
+    return notes
+      .map((entry) => (typeof entry === 'string' ? entry : entry?.note || ''))
+      .filter(Boolean)
+      .join('\n\n');
+  }
+  return '';
 }

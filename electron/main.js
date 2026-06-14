@@ -12,10 +12,14 @@ import {
   shell,
 } from 'electron';
 import { Chess } from 'chess.js';
+import electronUpdater from 'electron-updater';
 import { createLogger } from './logger.js';
 import { createConfigStore } from './configStore.js';
 import { createUpdateService } from './updateService.js';
 import { requestLLMMove } from '../src/services/llmCore.js';
+
+// electron-updater is CommonJS; destructure the autoUpdater singleton.
+const { autoUpdater } = electronUpdater;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(__dirname, '..');
@@ -41,9 +45,11 @@ async function boot() {
     logger,
   });
   updateService = createUpdateService({
+    autoUpdater,
     currentVersion: app.getVersion(),
-    manifestUrl: process.env.NEURAL_CHESS_UPDATE_URL || configStore.getUpdateManifestUrl(),
     logger,
+    isPackaged: app.isPackaged,
+    onStateChange: broadcastUpdateState,
   });
 
   applyContentSecurityPolicy();
@@ -52,7 +58,7 @@ async function boot() {
   registerIpcHandlers();
   createWindow();
 
-  if (app.isPackaged && updateService.getState().status !== 'disabled') {
+  if (app.isPackaged) {
     updateService.checkForUpdates().catch((error) => {
       logger.error('updates.startup_check_failed', { message: error.message });
     });
@@ -258,6 +264,15 @@ function registerProcessHandlers() {
   });
 }
 
+// Push update state (including live download progress) to every window.
+function broadcastUpdateState(updateState) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.webContents.send('updates:state', updateState);
+    }
+  }
+}
+
 function registerIpcHandlers() {
   ipcMain.handle('app:get-bootstrap', async () => ({
     runtime: {
@@ -339,6 +354,8 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('updates:check', async () => updateService.checkForUpdates());
+  ipcMain.handle('updates:download', async () => updateService.downloadUpdate());
+  ipcMain.on('updates:install', () => updateService.quitAndInstall());
 
   ipcMain.handle('shell:open-external', async (_event, url) => {
     if (!url) {

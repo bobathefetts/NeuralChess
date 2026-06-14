@@ -8,14 +8,16 @@ import {
   checkForUpdates,
   clearLegacyBrowserState,
   clearStoredApiKey,
+  downloadUpdate,
   getLegacyBrowserState,
   importLegacyState,
+  installUpdate,
   loadBootstrap,
   logRuntimeEvent,
-  openExternal,
   openLogsDirectory,
   saveRendererState,
   setStoredApiKey,
+  subscribeUpdateState,
 } from './services/runtimeBridge';
 import ChessBoard from './components/ChessBoard';
 import LLMConfig from './components/LLMConfig';
@@ -146,6 +148,10 @@ export default function App() {
     window.addEventListener('unhandledrejection', handleGlobalError);
     return () => window.removeEventListener('unhandledrejection', handleGlobalError);
   }, []);
+
+  // Receive live update-state pushes from the main process (download progress,
+  // update-downloaded, etc.).
+  useEffect(() => subscribeUpdateState(setUpdateState), []);
 
   const abortAI = useCallback(() => {
     abortRef.current?.abort();
@@ -399,11 +405,14 @@ export default function App() {
     setUpdateState(nextState);
   }, []);
 
-  const handleDownloadUpdate = useCallback(() => {
-    if (updateState.downloadUrl) {
-      openExternal(updateState.downloadUrl);
-    }
-  }, [updateState.downloadUrl]);
+  const handleDownloadUpdate = useCallback(async () => {
+    const nextState = await downloadUpdate();
+    setUpdateState(nextState);
+  }, []);
+
+  const handleInstallUpdate = useCallback(() => {
+    installUpdate();
+  }, []);
 
   const handleAcceptDisclaimer = useCallback(() => {
     setDisclaimerAccepted(true);
@@ -516,7 +525,8 @@ export default function App() {
               gameStarted && !resigned && moveHistory.length > 0 ? handleUndo : null
             }
             onCheckForUpdates={handleCheckForUpdates}
-            onDownloadUpdate={updateState.downloadUrl ? handleDownloadUpdate : null}
+            onDownloadUpdate={updateState.status === 'available' ? handleDownloadUpdate : null}
+            onInstallUpdate={updateState.status === 'downloaded' ? handleInstallUpdate : null}
             onOpenLogs={openLogsDirectory}
             gameStarted={gameStarted}
           />

@@ -14,6 +14,13 @@ contextBridge.exposeInMainWorld('neuralChessDesktop', {
     return () => ipcRenderer.removeListener('llm:move-stream', handler);
   },
   checkForUpdates: () => ipcRenderer.invoke('updates:check'),
+  downloadUpdate: () => ipcRenderer.invoke('updates:download'),
+  installUpdate: () => ipcRenderer.send('updates:install'),
+  onUpdateState: (listener) => {
+    const handler = (_event, state) => listener(state);
+    ipcRenderer.on('updates:state', handler);
+    return () => ipcRenderer.removeListener('updates:state', handler);
+  },
   openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
   openLogsDirectory: () => ipcRenderer.invoke('shell:open-logs-directory'),
   logRendererEvent: (event, meta) => ipcRenderer.send('logs:renderer-event', { event, meta }),
