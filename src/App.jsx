@@ -25,6 +25,7 @@ import MoveHistory from './components/MoveHistory';
 import StatusPanel from './components/StatusPanel';
 import ThinkingPanel from './components/ThinkingPanel';
 import DisclaimerModal from './components/DisclaimerModal';
+import { playMoveSound } from './services/sound';
 import './App.css';
 
 export default function App() {
@@ -71,6 +72,7 @@ export default function App() {
 
   const isThinkingRef = useRef(false);
   const abortRef = useRef(null);
+  const lastSoundedRef = useRef(0);
 
   useEffect(() => {
     let isCancelled = false;
@@ -152,6 +154,15 @@ export default function App() {
   // Receive live update-state pushes from the main process (download progress,
   // update-downloaded, etc.).
   useEffect(() => subscribeUpdateState(setUpdateState), []);
+
+  // Play a move/capture click whenever a move is added (player or AI).
+  useEffect(() => {
+    if (moveHistory.length > lastSoundedRef.current) {
+      const last = moveHistory[moveHistory.length - 1];
+      playMoveSound(last?.captured ? 'capture' : 'move');
+    }
+    lastSoundedRef.current = moveHistory.length;
+  }, [moveHistory]);
 
   const abortAI = useCallback(() => {
     abortRef.current?.abort();
@@ -511,6 +522,7 @@ export default function App() {
             gameStatus={resigned ? 'resigned' : gameStatus}
             turn={getTurn()}
             playerColor={playerColor}
+            moveHistory={moveHistory}
             llmConfig={llmConfig}
             difficulty={difficulty}
             runtimeInfo={runtimeInfo}

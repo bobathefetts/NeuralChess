@@ -5,7 +5,9 @@ import {
   app,
   BrowserWindow,
   crashReporter,
+  dialog,
   ipcMain,
+  Menu,
   safeStorage,
   screen,
   session,
@@ -53,6 +55,7 @@ async function boot() {
   });
 
   applyContentSecurityPolicy();
+  buildApplicationMenu();
   startCrashReporter();
   registerProcessHandlers();
   registerIpcHandlers();
@@ -96,6 +99,72 @@ function migrateLegacyUserData() {
   } catch {
     return null;
   }
+}
+
+const GITHUB_URL = 'https://github.com/bobathefetts/NeuralChess';
+
+function showAboutDialog(parentWindow) {
+  dialog
+    .showMessageBox(parentWindow, {
+      type: 'info',
+      title: 'About Neural Chess',
+      message: 'Neural Chess',
+      detail: `Version ${app.getVersion()}\n\nPlay chess against large language models.\nHuman vs. machine — an LLM chess lab built with React, Vite, and Electron.`,
+      buttons: ['Visit GitHub', 'Close'],
+      defaultId: 1,
+      cancelId: 1,
+      noLink: true,
+    })
+    .then((result) => {
+      if (result.response === 0) {
+        shell.openExternal(GITHUB_URL).catch(() => {});
+      }
+    })
+    .catch(() => {});
+}
+
+function buildApplicationMenu() {
+  const isMac = process.platform === 'darwin';
+  const template = [
+    ...(isMac ? [{ role: 'appMenu' }] : []),
+    {
+      label: 'File',
+      submenu: [isMac ? { role: 'close' } : { role: 'quit' }],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      role: 'help',
+      label: 'Help',
+      submenu: [
+        {
+          label: 'View on GitHub',
+          click: () => shell.openExternal(GITHUB_URL).catch(() => {}),
+        },
+        {
+          label: 'Report an Issue',
+          click: () => shell.openExternal(`${GITHUB_URL}/issues`).catch(() => {}),
+        },
+        { type: 'separator' },
+        {
+          label: 'About Neural Chess',
+          click: (_item, focusedWindow) => showAboutDialog(focusedWindow),
+        },
+      ],
+    },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 // Lock the renderer down with a Content-Security-Policy. The renderer never
@@ -157,7 +226,6 @@ function createWindow() {
     center: bounds.x === undefined,
     show: false,
     backgroundColor: '#050a12',
-    autoHideMenuBar: true,
     title: 'Neural Chess - Human vs. AI',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),

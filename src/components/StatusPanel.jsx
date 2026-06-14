@@ -1,9 +1,11 @@
+import CapturedPieces from './CapturedPieces';
 import './StatusPanel.css';
 
 export default function StatusPanel({
   gameStatus,
   turn,
   playerColor,
+  moveHistory = [],
   llmConfig,
   difficulty,
   runtimeInfo,
@@ -83,6 +85,8 @@ export default function StatusPanel({
           </div>
         </div>
       </div>
+
+      <CapturedPieces moveHistory={moveHistory} playerColor={playerColor} />
 
       <div className={`game-status ${cls}`}>
         {isThinking && <span className="pulse-dot" />}
