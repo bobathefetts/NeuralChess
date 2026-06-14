@@ -130,9 +130,12 @@ browser/dev mode). Release notes from the GitHub Release are shown in the UI.
 
 ### Cutting a release
 
-Releases are produced by the `Release` workflow (`.github/workflows/release.yml`),
-which builds the Windows installer and publishes it — along with `latest.yml`
-(the feed `electron-updater` reads) — to a GitHub Release:
+Releases are produced by the `Release` workflow (`.github/workflows/release.yml`).
+Build and upload are decoupled: electron-builder only builds the installer
+(`npm run release`, which runs `--publish never`), then the workflow uploads
+the installer, its `.blockmap`, and `latest.yml` (the feed `electron-updater`
+reads) to a GitHub Release with `softprops/action-gh-release`. This avoids a
+race in electron-builder's own publisher that can drop the large installer.
 
 ```bash
 # bump "version" in package.json first, then:
@@ -140,9 +143,8 @@ git tag v1.1.0
 git push origin v1.1.0
 ```
 
-The publish target (owner/repo) is inferred from the `origin` git remote, so
-the repository must have a GitHub `origin` set. To publish from your machine
-instead of CI, set a `GH_TOKEN` with `repo` scope and run `npm run release`.
+`npm run release` builds the artifacts locally into `release/` without
+publishing; the workflow handles the upload.
 
 > Because builds are unsigned, the downloaded installer is verified by SHA-512
 > hash from `latest.yml` (not by code-signature). Adding code signing later

@@ -2,6 +2,11 @@ name: Release
 
 # Push a version tag (e.g. v1.1.0) to build the Windows installer and publish
 # it — plus latest.yml for electron-updater — to a GitHub Release.
+#
+# Build and upload are deliberately decoupled: electron-builder's own GitHub
+# publisher races release-creation against asset upload and can drop the large
+# installer. Here electron-builder only builds (--publish never), then a
+# dedicated action uploads every artifact to the release.
 on:
   push:
     tags:
@@ -30,8 +35,14 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Build and publish to GitHub Releases
-        env:
-          # electron-builder reads this to create the release and upload assets.
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build installer
         run: npm run release
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/NeuralChess-Setup-*.exe
+            release/NeuralChess-Setup-*.exe.blockmap
+            release/latest.yml
+          fail_on_unmatched_files: true
