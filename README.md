@@ -1,12 +1,21 @@
 <img width="1774" height="887" alt="NeuralChess" src="https://github.com/user-attachments/assets/d83667bc-3503-45e8-a4c5-4092b08e6dca" />
 
-
-
 # Neural Chess
 
-Neural Chess is an LLM-vs-human chess app built with React, Vite, Electron, and `chess.js`.
+![GitHub release](https://img.shields.io/github/v/release/bobathefetts/NeuralChess)
+![License](https://img.shields.io/github/license/bobathefetts/NeuralChess)
+![Stars](https://img.shields.io/github/stars/bobathefetts/NeuralChess)
+![Issues](https://img.shields.io/github/issues/bobathefetts/NeuralChess)
 
-This project is not trying to be Stockfish. The goal is to see how different language models reason about chess positions while still forcing them to produce legal moves.
+**Neural Chess is a desktop chess lab for playing against local and remote LLMs while enforcing legal moves.**
+
+It is designed for testing how language models reason through chess positions, compare move quality, and handle retry loops when their first answer is illegal. It is not trying to be Stockfish; it is a practical lab for observing LLM chess behavior.
+
+## Download
+
+Download the latest Windows installer from the [Releases page](https://github.com/bobathefetts/NeuralChess/releases/latest).
+
+> Current builds are unsigned, so Windows SmartScreen may warn on first install. Click **More info** and **Run anyway** only if you trust the release source.
 
 ## What It Does
 
@@ -17,6 +26,18 @@ This project is not trying to be Stockfish. The goal is to see how different lan
 - Stores remote API keys in Electron secure storage when the desktop runtime is available.
 - Writes structured logs and local crash data for release diagnostics.
 - Checks a release manifest for newer builds and exposes download links in the app.
+
+## Why This Exists
+
+Most chess engines are designed to find strong moves. Neural Chess is different: it is built to test how language models behave when they are forced to interact with a real chess board.
+
+The app is useful for:
+
+- comparing local Ollama models against remote AI providers
+- testing whether a model can return legal SAN/UCI chess moves
+- watching model output before the final move is accepted
+- experimenting with prompt profiles and retry behavior
+- studying the gap between legal move generation and good chess strategy
 
 ## Product Boundaries
 
