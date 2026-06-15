@@ -2,7 +2,7 @@
   "name": "neural-chess",
   "productName": "Neural Chess",
   "description": "Play chess against large language models. An LLM-vs-human chess lab built with React, Vite, and Electron.",
-  "author": "Charg",
+  "author": "bobathefetts",
   "license": "MIT",
   "private": true,
   "version": "1.0.1",
