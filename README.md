@@ -1,4 +1,5 @@
-<img width="1774" height="887" alt="ChatGPT Image Jun 15, 2026, 10_40_20 AM" src="https://github.com/user-attachments/assets/30cc94fc-dfc2-4051-907d-44c8aaf22ba5" />
+<img width="1774" height="887" alt="NeuralChess" src="https://github.com/user-attachments/assets/d83667bc-3503-45e8-a4c5-4092b08e6dca" />
+
 
 
 # Neural Chess
