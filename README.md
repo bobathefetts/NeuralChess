@@ -1,3 +1,6 @@
+<img width="1774" height="887" alt="ChatGPT Image Jun 15, 2026, 10_40_20 AM" src="https://github.com/user-attachments/assets/30cc94fc-dfc2-4051-907d-44c8aaf22ba5" />
+
+
 # Neural Chess
 
 Neural Chess is an LLM-vs-human chess app built with React, Vite, Electron, and `chess.js`.
